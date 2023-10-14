@@ -48,6 +48,21 @@ high/low, and serve mode manual/auto. In auto serve mode the ball is
 automatically served; in manual mode you need to press the serve
 button.
 
+Switch wiring for external case:
+
+```
+Function  Type          Label
+--------  -----         -----
+Power     SPST toggle   Power: On/Off
+Game      4-pos rotary  Tennis, Soccer, Squash, Practice
+Angle     SPST toggle   Ball Angle: High/Low
+Size      SPST toggle   Paddle Size: Small/Large
+Speed     SPST toggle   Speed: Slow/Fast
+Serve     SPST toggle   Serve Mode: Manual/Auto
+Serve     Momentary     Serve
+Reset     Momentary     Reset
+```
+
 Circuit Notes
 
 The circuit is based on the sample design on the AY-3-8500-1
