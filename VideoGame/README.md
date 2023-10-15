@@ -35,12 +35,13 @@ connected via two conductor shielded cables (up to 8 feet long).
 It is recommended to use sockets for the ICs.
 
 It can be powered from a 9 volt battery, 6 1.5 volt cells, or any
-unregulated source of 8 to 15 volts DC.
+unregulated source of 8 to 15 volts DC (e.g. wall wart).
 
 Video and audio outputs should be connected to a TV or monitor with
 composite video and analog audio input. The design is for NTSC video
 but should also work in PAL video mode if the AY-3-8500 chip is used
-instead.
+instead. To work with a TV with RF input an external RF modulator will
+be needed.
 
 Using the DIP switch, select one of the four games to play. Select
 game options: speed fast/slow, paddle size large/small, ball angle
@@ -59,9 +60,43 @@ Angle     SPST toggle   Ball Angle: High/Low
 Size      SPST toggle   Paddle Size: Small/Large
 Speed     SPST toggle   Speed: Slow/Fast
 Serve     SPST toggle   Serve Mode: Manual/Auto
-Serve     Momentary     Serve
+Serve     Momentary     Serve (when in manual mode)
 Reset     Momentary     Reset
 ```
+
+Assembly Notes
+
+Recommended order of assembly is for lowest height components to
+highest:
+
+- resistors
+- IC sockets
+- pushbuttons
+- LED
+- DIP switches
+- headers
+- capacitors
+- phono jacks
+- crystal
+- LM317
+
+Observe the correct polarity when installing the LED and electrolytic
+capacitor.
+
+Leave the three ICs out. Verify that with 9 volts or more applied to
+the power input you see approximately 7 volts (independent of the
+input voltage). The power LED should light up.
+
+Insert U3 and verify the 2 MHz clock signal is present using an
+oscilloscope or frequency counter.
+
+Install the remaining ICs and check for correct audio and video output
+and game operation.
+
+Not using shielded wires for the paddles may cause erratic operation.
+
+R1 can be adjusted in value if audio to too low or high for your
+monitor.
 
 Circuit Notes
 
