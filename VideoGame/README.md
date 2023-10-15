@@ -79,13 +79,14 @@ highest:
 - phono jacks
 - crystal
 - LM317
+- standoffs
 
 Observe the correct polarity when installing the LED and electrolytic
 capacitor.
 
-Leave the three ICs out. Verify that with 9 volts or more applied to
-the power input you see approximately 7 volts (independent of the
-input voltage). The power LED should light up.
+Initially leave the three ICs out of their sockets. Verify that with 9
+volts or more applied to the power input you see approximately 7 volts
+(independent of the input voltage). The power LED should light up.
 
 Insert U3 and verify the 2 MHz clock signal is present using an
 oscilloscope or frequency counter.
