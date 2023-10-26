@@ -1,13 +1,10 @@
 This is a retro video game design based around the AY-3-8500-1 chip
 from General Instrument. This chip was used on many first generation
 video game consoles in the 1970s. It can play four different games,
-for one or two players, controlled by paddles.
+for one or two players, controlled by paddles. The circuit and PCB
+have been verified as working.
 
-It is still a work in progress - the basic circuit has been
-breadboarded but the PCB has not yet been verified as working
-and some part values may still need to be adjusted.
-
-Construction Notes
+# Construction Notes
 
 The board is straightforward to assemble using all through-hole
 components. Parts can be obtained from sources like Mouser of Digikey.
@@ -31,17 +28,19 @@ for feet.
 
 The paddles are 1 Megohm linear taper potentiometers. They should be
 connected via two conductor shielded cables (up to 8 feet long).
+If desired, you can also wire the reset signal to a button on one
+or both controls to support resetting games.
 
-It is recommended to use sockets for the ICs.
+It is highly recommended to use sockets for the ICs.
 
 It can be powered from a 9 volt battery, 6 1.5 volt cells, or any
 unregulated source of 8 to 15 volts DC (e.g. wall wart).
 
 Video and audio outputs should be connected to a TV or monitor with
-composite video and analog audio input. The design is for NTSC video
-but should also work in PAL video mode if the AY-3-8500 chip is used
-instead. To work with a TV with RF input an external RF modulator will
-be needed.
+composite video and analog audio inputs. The design is for NTSC video
+but should also work in PAL video mode if an AY-3-8500 chip is used
+instead. The output is monochrome (i.e. black and white). To work with
+a TV with RF input an external RF modulator will be needed.
 
 Using the DIP switch, select one of the four games to play. Select
 game options: speed fast/slow, paddle size large/small, ball angle
@@ -64,9 +63,9 @@ Serve     Momentary     Serve (when in manual mode)
 Reset     Momentary     Reset
 ```
 
-Assembly Notes
+# Assembly Notes
 
-Recommended order of assembly is for lowest height components to
+The recommended order of assembly is from lowest height components to
 highest:
 
 - resistors
@@ -86,20 +85,23 @@ capacitor.
 
 Initially leave the three ICs out of their sockets. Verify that with 9
 volts or more applied to the power input you see approximately 7 volts
-(independent of the input voltage). The power LED should light up.
+on VCC (independent of the input voltage). The power LED should light
+up.
+
+Depending on the phono jacks used, you may need to bend or file some
+of the leads to fit the holes in the PCB.
 
 Insert U3 and verify the 2 MHz clock signal is present using an
-oscilloscope or frequency counter.
+oscilloscope or frequency counter (if available).
 
 Install the remaining ICs and check for correct audio and video output
-and game operation.
+and game operation. R1 can be adjusted in value if audio is too low or
+too high for your monitor.
 
-Not using shielded wires for the paddles may cause erratic operation.
+Wire up the controls external to the board. Not using shielded wires
+for the paddles may cause erratic operation.
 
-R1 can be adjusted in value if audio to too low or high for your
-monitor.
-
-Circuit Notes
+# Circuit Notes
 
 The circuit is based on the sample design on the AY-3-8500-1
 datasheet. Line level audio (approximately 1V RMS) is provided, rather
@@ -107,18 +109,17 @@ than an internal speaker, as most televisions or monitors support
 audio.
 
 An LM317 regulator provides a constant voltage of approximately 7
-volts. The game takes approximately 60 mA when using a 9 volt
-battery. The power LED could be omitted to reduce power consumption
-slightly.
+volts. The game takes approximately 60 mA when using a 9 volt battery.
+The power LED can be omitted to reduce power consumption slightly.
 
 There is an optional circuit for two "rifle" games, described in the
 datasheet. This is not included, but the relevant pins to the game IC
 are brought out to header pins in case you want to implement it with
 external circuitry.
 
-References
+# References
 
 1. https://oshwlab.com/tranter/ball-paddle-video-game
-2. AY-3-8500-1 data sheet
+2. AY-3-8500-1 data sheet.
 3. https://en.wikipedia.org/wiki/AY-3-8500
 4. https://en.wikipedia.org/wiki/First_generation_of_video_game_consoles
