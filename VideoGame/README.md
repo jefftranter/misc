@@ -7,11 +7,11 @@ have been verified as working.
 # Construction Notes
 
 The board is straightforward to assemble using all through-hole
-components. Parts can be obtained from sources like Mouser of Digikey.
-The AY-3-8500-1 is no longer made but NOS chips are available from
-Veswin Electronics. Make sure you select AY-3-8500-1 (NTSC video) or
-AY-3-5800 (PAL video) depending on the desired video format for your
-region.
+components. Parts can be obtained from sources like Mouser and
+Digikey. The AY-3-8500-1 is no longer made but NOS chips are available
+from Veswin Electronics. Make sure you select AY-3-8500-1 (NTSC video)
+or AY-3-5800 (PAL video) depending on the desired video format for
+your region.
 
 If desired you can use the provided PCB design files - mine was
 manufactured at low cost by JLCPCB.
