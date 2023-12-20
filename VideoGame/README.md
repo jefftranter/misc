@@ -117,6 +117,20 @@ datasheet. This is not included, but the relevant pins to the game IC
 are brought out to header pins in case you want to implement it with
 external circuitry.
 
+#Licensing
+
+Copyright (c) 2023 by Jeff Tranter <tranter@pobox.com>
+
+The hardware design is Open Source Hardware, licensed under the The TAPR
+Open Hardware License. You are welcome to build the circuit and use my
+PCB layout.
+See https://web.tapr.org/TAPR_Open_Hardware_License_v1.0.txt
+
+
+Documentation is licensed under a Creative Commons Attribution 4.0
+International License.
+See https://creativecommons.org/licenses/by/4.0/
+
 # References
 
 1. https://oshwlab.com/tranter/ball-paddle-video-game
