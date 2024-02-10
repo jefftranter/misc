@@ -1,2 +1,2 @@
 # misc
-Repository for miscellanous projects.
+Repository for miscellaneous projects.

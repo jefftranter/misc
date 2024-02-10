@@ -6,3 +6,12 @@ For more details or to order a copy, see:
 https://www.lulu.com/shop/jeff-tranter/classic-heathkit-computers-calculators-and-robots/paperback/product-nvvrdnw.html
 
 It will also be available from other sources, including amazon.com
+
+# Corrections and Errata
+
+None at this time.
+
+# Updates
+
+I've made a Youtube video on Emulating Heathkit Computers with MAME.
+See https://youtu.be/oEY0O-yFeC4
