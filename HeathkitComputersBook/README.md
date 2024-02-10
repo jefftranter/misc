@@ -1,6 +1,8 @@
-This directory will hold files related to my upcoming book *Classic
-Heathkit Computers, Calculators, and Robots* to be published in 2024.
+This directory holds files related to my book *Classic Heathkit
+Computers, Calculators, and Robots* published in February of 2024.
 
-Watch for more details in the future!
+For more details or to order a copy, see:
 
-Also see: https://www.lulu.com/spotlight/tranter
+https://www.lulu.com/shop/jeff-tranter/classic-heathkit-computers-calculators-and-robots/paperback/product-nvvrdnw.html
+
+It will also be available from other sources, including amazon.com
