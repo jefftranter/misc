@@ -5,7 +5,13 @@ For more details or to order a copy, see:
 
 https://www.lulu.com/shop/jeff-tranter/classic-heathkit-computers-calculators-and-robots/paperback/product-nvvrdnw.html
 
-It will also be available from other sources, including amazon.com
+Link on Amazon USA: https://a.co/d/2j99BIc
+
+Link on Amazon Canada: https://a.co/d/8GFKxaE
+
+Link on Amazon UK: https://amzn.eu/d/fXkzVuh
+
+Link on Barnes and Noble: https://www.barnesandnoble.com/w/classic-heathkit-computers-calculators-and-robots-jeff-tranter/1144884599
 
 # Corrections and Errata
 
