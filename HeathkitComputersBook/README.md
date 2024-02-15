@@ -11,6 +11,12 @@ Link on Amazon Canada: https://a.co/d/8GFKxaE
 
 Link on Amazon UK: https://amzn.eu/d/fXkzVuh
 
+Link on Amazon Germany: https://amzn.eu/d/bqMCp20
+
+Link on Amazon France: https://www.amazon.fr/dp/0992138221
+
+Link on Amazon India: https://amzn.eu/d/hUcaPpH
+
 Link on Barnes and Noble: https://www.barnesandnoble.com/w/classic-heathkit-computers-calculators-and-robots-jeff-tranter/1144884599
 
 # Corrections and Errata
