@@ -52,6 +52,7 @@ FaceBook Groups:
 - Heathkit Computers: https://www.facebook.com/groups/774192766562897
 - Heathkit/Zenith vintage computer users: https://www.facebook.com/groups/221636095024691
 - Heathkit products: https://www.facebook.com/groups/53497998217
+- Heathkit Owners Group: https://www.facebook.com/groups/147848912365070
 
 Web Sites:
 
