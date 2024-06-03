@@ -50,7 +50,7 @@ FaceBook Groups:
 
 - Heathkit ET3400 Support Group: https://www.facebook.com/groups/1820000521390889
 - Heathkit Computers: https://www.facebook.com/groups/774192766562897
-- Heathkit /Zenith vintage computer users: https://www.facebook.com/groups/221636095024691
+- Heathkit/Zenith vintage computer users: https://www.facebook.com/groups/221636095024691
 - Heathkit products: https://www.facebook.com/groups/53497998217
 
 Web Sites:
