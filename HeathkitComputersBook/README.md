@@ -71,5 +71,6 @@ July 2024
 
 I've started a series of YouTube videos about the Heathkit H89:
 
-- https://youtu.be/pNv698G5iII
-- https://youtu.be/fbOAMmzJgts
+- Part 1: https://youtu.be/pNv698G5iII
+- Part 2: https://youtu.be/fbOAMmzJgts
+- Part 3: https://youtu.be/uYE4BZZyW9Q
