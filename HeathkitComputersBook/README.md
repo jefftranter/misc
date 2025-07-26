@@ -65,7 +65,7 @@ Google Groups:
 
 Discord Channel:
 
-- https://sebhc.github.io/sebhc/
+- https://discord.com/channels/1051285909292716112/1051285909292716115
 
 July 2024
 
