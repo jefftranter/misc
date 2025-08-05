@@ -67,10 +67,17 @@ Discord Channel:
 
 - https://discord.com/channels/1051285909292716112/1051285909292716115
 
-July 2024
+July 2025
 
 I've started a series of YouTube videos about the Heathkit H89:
 
 - Part 1: https://youtu.be/pNv698G5iII
 - Part 2: https://youtu.be/fbOAMmzJgts
 - Part 3: https://youtu.be/uYE4BZZyW9Q
+- Part 4: https://youtu.be/3VbiuILmPcA
+
+August 2025
+
+Links to latest videos:
+
+- Part 5: https://youtu.be/4IfXYdWtMbo
