@@ -67,17 +67,12 @@ Discord Channel:
 
 - https://discord.com/channels/1051285909292716112/1051285909292716115
 
-July 2025
+July/August 2025
 
 I've started a series of YouTube videos about the Heathkit H89:
 
-- Part 1: https://youtu.be/pNv698G5iII
-- Part 2: https://youtu.be/fbOAMmzJgts
-- Part 3: https://youtu.be/uYE4BZZyW9Q
-- Part 4: https://youtu.be/3VbiuILmPcA
-
-August 2025
-
-Links to latest videos:
-
-- Part 5: https://youtu.be/4IfXYdWtMbo
+[The Heathkit H89 Computer Part 1: History](https://youtu.be/pNv698G5iII)
+[The Heathkit H89 Computer Part 2: Hardware Overview](https://youtu.be/fbOAMmzJgts)
+[The Heathkit H89 Computer Part 3: The ROM Monitor](https://youtu.be/uYE4BZZyW9Q)
+[The Heathkit H89 Computer Part 4: Automatic Key Repeat Module](https://youtu.be/3VbiuILmPcA)
+[The Heathkit H89 Computer Part 5: Restoration of My Unit](https://youtu.be/4IfXYdWtMbo)
