@@ -76,3 +76,4 @@ I've started a series of YouTube videos about the Heathkit H89:
 - [The Heathkit H89 Computer Part 3: The ROM Monitor](https://youtu.be/uYE4BZZyW9Q)
 - [The Heathkit H89 Computer Part 4: Automatic Key Repeat Module](https://youtu.be/3VbiuILmPcA)
 - [The Heathkit H89 Computer Part 5: Restoration of My Unit](https://youtu.be/4IfXYdWtMbo)
+- [The Heathkit H89 Computer Part 6: The H89 CF-RTC-Serial-Parallel Board](https://youtu.be/ePgfGU4M8DQ)
