@@ -80,5 +80,4 @@ I've started a series of YouTube videos about the Heathkit H89:
 - [The Heathkit H89 Computer Part 7: The H89 VDIP1 RTC Board](https://youtu.be/xoN_Uh15Nn0)
 - [The Heathkit H89 Computer Part 8: Running CP/M](https://youtu.be/NdyeUc8wGPE)
 - [The Heathkit H89 Computer Part 9: Running HDOS](https://youtu.be/wuzaymvvd_0)
-- [The Heathkit H89 Computer Part 9: Running HDOS](https://youtu.be/wuzaymvvd_0)
 - [The Heathkit H89 Computer Part 10: Two Useful Utilities](https://youtu.be/c75VSzwKH3M)
