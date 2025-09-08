@@ -82,3 +82,5 @@ I've started a series of YouTube videos about the Heathkit H89:
 - [The Heathkit H89 Computer Part 9: Running HDOS](https://youtu.be/wuzaymvvd_0)
 - [The Heathkit H89 Computer Part 10: Two Useful Utilities](https://youtu.be/c75VSzwKH3M)
 - [The Heathkit H89 Computer Part 11: Heathkit Computer User Groups, Magazines, and Journals](https://youtu.be/dgJFAMIFaL4)
+- [The Heathkit H89 Computer Part 12: Benton Harbor BASIC and Microsoft BASIC](https://youtu.be/wy7ub1vxRf0)
+
