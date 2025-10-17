@@ -77,13 +77,57 @@ Variable* make_var(const char *name, VarType type) {
     return v;
 }
 
-// ---------------- Utility Functions ----------------
+// ---------------- Expression Evaluation ----------------
 
-int eval_expr(const char *token) {
-    Variable *v = find_var(token);
-    if(v && v->type==TYPE_INT) return v->int_val;
-    return atoi(token);
+int parse_expr(const char **s);
+
+int parse_factor(const char **s) {
+    while(isspace(**s)) (*s)++;
+    if(**s=='(') {
+        (*s)++;
+        int val = parse_expr(s);
+        if(**s==')') (*s)++;
+        return val;
+    }
+    char buf[32]; int i=0;
+    while(isalnum(**s) || **s=='_') buf[i++]=*(*s)++;
+    buf[i]='\0';
+    if(i>0) {
+        Variable *v = find_var(buf);
+        if(v && v->type==TYPE_INT) return v->int_val;
+        return atoi(buf);
+    }
+    int val=0;
+    while(isdigit(**s)) { val=val*10+(**s-'0'); (*s)++; }
+    return val;
 }
+
+int parse_term(const char **s) {
+    int val = parse_factor(s);
+    while(**s=='*' || **s=='/') {
+        char op = **s; (*s)++;
+        int rhs = parse_factor(s);
+        if(op=='*') val*=rhs; else val/=rhs;
+    }
+    return val;
+}
+
+int parse_expr(const char **s) {
+    int val = parse_term(s);
+    while(**s=='+' || **s=='-') {
+        char op = **s; (*s)++;
+        int rhs = parse_term(s);
+        if(op=='+') val+=rhs; else val-=rhs;
+    }
+    return val;
+}
+
+int eval_arith_expr(const char *expr) {
+    const char *p = expr;
+    return parse_expr(&p);
+}
+
+// ---------------- String Functions ----------------
 
 char* eval_str_func(const char *func, const char *arg1, const char *arg2, const char *arg3) {
     static char buf[256];
@@ -92,19 +136,19 @@ char* eval_str_func(const char *func, const char *arg1, const char *arg2, const 
         if(v && v->type==TYPE_STRING) { sprintf(buf,"%lu",(unsigned long)strlen(v->str_val)); return buf;}
     } else if(strcmp(func,"LEFT$")==0) {
         Variable *v = find_var(arg1);
-        int n = eval_expr(arg2);
+        int n = eval_arith_expr(arg2);
         if(v && v->type==TYPE_STRING) { strncpy(buf,v->str_val,n); buf[n]='\0'; return buf;}
     } else if(strcmp(func,"RIGHT$")==0) {
         Variable *v = find_var(arg1);
-        int n = eval_expr(arg2);
-        if(v && v->type==TYPE_STRING) { int len = strlen(v->str_val); if(n>len) n=len; strcpy(buf,v->str_val+len-n); return buf;}
+        int n = eval_arith_expr(arg2);
+        if(v && v->type==TYPE_STRING) { int len=strlen(v->str_val); if(n>len) n=len; strcpy(buf,v->str_val+len-n); return buf;}
     } else if(strcmp(func,"MID$")==0) {
         Variable *v = find_var(arg1);
-        int start=eval_expr(arg2)-1;
-        int n=eval_expr(arg3);
+        int start = eval_arith_expr(arg2)-1;
+        int n = eval_arith_expr(arg3);
         if(v && v->type==TYPE_STRING) { strncpy(buf,v->str_val+start,n); buf[n]='\0'; return buf;}
     } else if(strcmp(func,"CHR$")==0) {
-        int c=eval_expr(arg1); buf[0]=(char)c; buf[1]='\0'; return buf;
+        int c = eval_arith_expr(arg1); buf[0]=(char)c; buf[1]='\0'; return buf;
     } else if(strcmp(func,"ASC")==0) {
         Variable *v = find_var(arg1);
         if(v && v->type==TYPE_STRING && strlen(v->str_val)>0) { sprintf(buf,"%d",(int)v->str_val[0]); return buf;}
@@ -130,29 +174,20 @@ void execute_line(int index) {
 
     // ---------------- Commands ----------------
     if(strcmp(tokens[0],"PRINT")==0) {
-        for(int i=1;i<n;i++) {
-            char *tok = tokens[i];
-            Variable *v=find_var(tok);
-            if(v) {
-                if(v->type==TYPE_INT) printf("%d",v->int_val);
-                else if(v->type==TYPE_STRING) printf("%s",v->str_val);
-            } else if(strchr(tok,'(')) {
-                // function-like token
-                char func[32], arg1[32], arg2[32], arg3[32];
-                func[0]='\0'; arg1[0]='\0'; arg2[0]='\0'; arg3[0]='\0';
-                sscanf(tok,"%31[^'(](%31[^,],%31[^,],%31[^)])", func,arg1,arg2,arg3);
-                char *res = eval_str_func(func,arg1,arg2,arg3);
-                printf("%s", res);
-            } else {
-                // string literal
-                if(tok[0]=='"' && tok[strlen(tok)-1]=='"') {
-                    tok[strlen(tok)-1]='\0';
-                    printf("%s", tok+1);
-                } else printf("%s", tok);
-            }
-            if(i<n-1) printf(" ");
+        char exprbuf[256]="";
+        for(int i=1;i<n;i++) { strcat(exprbuf,tokens[i]); if(i<n-1) strcat(exprbuf," "); }
+        if(exprbuf[0]=='"' && exprbuf[strlen(exprbuf)-1]=='"') {
+            exprbuf[strlen(exprbuf)-1]='\0';
+            printf("%s\n", exprbuf+1);
+        } else if(strchr(exprbuf,'(')) {
+            char func[32], a1[32], a2[32], a3[32];
+            func[0]=a1[0]=a2[0]=a3[0]='\0';
+            sscanf(exprbuf,"%31[^'(](%31[^,],%31[^,],%31[^)])", func,a1,a2,a3);
+            char *res = eval_str_func(func,a1,a2,a3);
+            printf("%s\n", res);
+        } else {
+            printf("%d\n", eval_arith_expr(exprbuf));
         }
-        printf("\n");
     } else if(strcmp(tokens[0],"LET")==0) {
         char *eq = strchr(program[index].text,'=');
         if(!eq) { fprintf(stderr,"Syntax error at line %d\n",program[index].line_no); longjmp(jump_buffer,1);}
@@ -160,15 +195,15 @@ void execute_line(int index) {
         char varname[32]; sscanf(program[index].text+4,"%31s",varname);
         Variable *v = make_var(varname,TYPE_INT);
         char *valstr = eq+1;
-        v->int_val=eval_expr(valstr);
+        v->int_val=eval_arith_expr(valstr);
     } else if(strcmp(tokens[0],"GOTO")==0) {
-        int target = eval_expr(tokens[1]);
+        int target = eval_arith_expr(tokens[1]);
         int found=-1;
         for(int i=0;i<program_lines;i++) if(program[i].line_no==target) { found=i; break;}
         if(found>=0) current_line_index=found-1;
         else { fprintf(stderr,"GOTO target %d not found\n",target); longjmp(jump_buffer,1);}
     } else if(strcmp(tokens[0],"GOSUB")==0) {
-        int target = eval_expr(tokens[1]);
+        int target = eval_arith_expr(tokens[1]);
         if(gosub_stack_ptr>=MAX_SUBSTACK) { fprintf(stderr,"GOSUB stack overflow\n"); longjmp(jump_buffer,1);}
         gosub_stack[gosub_stack_ptr++].line_index=current_line_index+1;
         int found=-1;
@@ -185,36 +220,16 @@ void execute_line(int index) {
         var_count=0;
         gosub_stack_ptr=0;
         for_stack_ptr=0;
-    } else if(strcmp(tokens[0],"ON")==0) {
-        int expr = eval_expr(tokens[1]);
-        char *cmd = tokens[2];
-        char *list = tokens[3];
-        int choice = expr;
-        int idx = 0;
-        char *targets[16];
-        char *tok = strtok(list,",");
-        while(tok && idx<16) { targets[idx++]=tok; tok=strtok(NULL,","); }
-        if(choice<1 || choice>idx) return;
-        int target = eval_expr(targets[choice-1]);
-        int found=-1;
-        for(int i=0;i<program_lines;i++) if(program[i].line_no==target) { found=i; break;}
-        if(found<0) { fprintf(stderr,"ON ... target %d not found\n",target); longjmp(jump_buffer,1);}
-        if(strcasecmp(cmd,"GOTO")==0) current_line_index=found-1;
-        else if(strcasecmp(cmd,"GOSUB")==0) {
-            if(gosub_stack_ptr>=MAX_SUBSTACK) { fprintf(stderr,"GOSUB stack overflow\n"); longjmp(jump_buffer,1);}
-            gosub_stack[gosub_stack_ptr++].line_index=current_line_index+1;
-            current_line_index=found-1;
-        } else { fprintf(stderr,"Unknown ON command %s\n",cmd); longjmp(jump_buffer,1);}
     } else if(strcmp(tokens[0],"FOR")==0) {
         if(n<6 || strcmp(tokens[2],"=")!=0 || strcasecmp(tokens[4],"TO")!=0) {
             fprintf(stderr,"Syntax error in FOR at line %d\n",program[index].line_no); 
             longjmp(jump_buffer,1);
         }
         char *varname = tokens[1];
-        int start_val = eval_expr(tokens[3]);
-        int end_val = eval_expr(tokens[5]);
+        int start_val = eval_arith_expr(tokens[3]);
+        int end_val = eval_arith_expr(tokens[5]);
         int step = 1;
-        if(n>=8 && strcasecmp(tokens[6],"STEP")==0) step = eval_expr(tokens[7]);
+        if(n>=8 && strcasecmp(tokens[6],"STEP")==0) step = eval_arith_expr(tokens[7]);
 
         Variable *v = make_var(varname, TYPE_INT);
         v->int_val = start_val;
@@ -234,15 +249,11 @@ void execute_line(int index) {
         if(v->int_val <= fe->end_val) current_line_index = fe->line_index;
         else for_stack_ptr--;
     } else if(n>=3 && strcmp(tokens[1],"=")==0) {
-        // Optional LET
         char *varname = tokens[0];
         Variable *v = make_var(varname, TYPE_INT);
         char valbuf[256] = "";
-        for(int i=2;i<n;i++) {
-            strcat(valbuf, tokens[i]);
-            if(i<n-1) strcat(valbuf," ");
-        }
-        v->int_val = eval_expr(valbuf);
+        for(int i=2;i<n;i++) { strcat(valbuf,tokens[i]); if(i<n-1) strcat(valbuf," "); }
+        v->int_val = eval_arith_expr(valbuf);
     } else {
         fprintf(stderr,"Unknown command at line %d: %s\n",program[index].line_no,program[index].text);
         longjmp(jump_buffer,1);
@@ -273,65 +284,38 @@ void interactive_mode() {
     while(1) {
         printf("] "); fflush(stdout);
         if(!fgets(line,sizeof(line),stdin)) break;
-
-        line[strcspn(line,"\n")]=0;
+        line[strcspn(line,"\n")] = 0;
         if(strlen(line)==0) continue;
 
-        char upline[256];
-        strcpy(upline,line);
+        char upline[256]; strcpy(upline,line);
         for(int i=0;i<strlen(upline);i++) upline[i]=toupper(upline[i]);
 
-        if(strcmp(upline,"LIST")==0) {
-            list_program();
-            continue;
-        } else if(strcmp(upline,"RUN")==0) {
-            run_program();
-            continue;
-        }
+        if(strcmp(upline,"LIST")==0) { list_program(); continue; }
+        if(strcmp(upline,"RUN")==0) { run_program(); continue; }
+        if(strcmp(upline,"NEW")==0) { program_lines=0; var_count=0; continue; }
 
         int lineno;
         if(sscanf(line,"%d",&lineno)==1) {
             char *p = strchr(line,' ');
             if(!p || strlen(p)==0) {
-                // Delete line if no code follows the number
                 int found=-1;
                 for(int i=0;i<program_lines;i++)
                     if(program[i].line_no==lineno) { found=i; break; }
-                if(found>=0) {
-                    for(int j=found;j<program_lines-1;j++)
-                        program[j]=program[j+1];
-                    program_lines--;
-                }
+                if(found>=0) { for(int j=found;j<program_lines-1;j++) program[j]=program[j+1]; program_lines--; }
                 continue;
             }
-            p++; // skip space
-            if(p[0]=='?') {
-                char temp[256];
-                strcpy(temp,p+1);
-                snprintf(p, MAX_LINE_LEN-(p-line), "PRINT%s", temp);
-            }
+            p++;
+            if(p[0]=='?') { char temp[256]; strcpy(temp,p+1); snprintf(p, MAX_LINE_LEN-(p-line), "PRINT%s", temp); }
             int found=-1;
-            for(int i=0;i<program_lines;i++)
-                if(program[i].line_no==lineno) { found=i; break;}
-            if(found>=0) {
-                strncpy(program[found].text,p,MAX_LINE_LEN);
-            } else {
-                if(program_lines>=MAX_LINES) { fprintf(stderr,"Too many lines\n"); continue;}
-                program[program_lines].line_no=lineno;
-                strncpy(program[program_lines].text,p,MAX_LINE_LEN);
-                program[program_lines].text[MAX_LINE_LEN-1]='\0';
-                program_lines++;
-            }
+            for(int i=0;i<program_lines;i++) if(program[i].line_no==lineno) { found=i; break;}
+            if(found>=0) strncpy(program[found].text,p,MAX_LINE_LEN);
+            else { if(program_lines>=MAX_LINES) { fprintf(stderr,"Too many lines\n"); continue; }
+                   program[program_lines].line_no=lineno; strncpy(program[program_lines].text,p,MAX_LINE_LEN); program[program_lines].text[MAX_LINE_LEN-1]='\0'; program_lines++; }
         } else {
-            // Immediate mode
-            if(line[0]=='?') {
-                char temp[256];
-                strcpy(temp,line+1);
-                snprintf(line, sizeof(line), "PRINT%s", temp);
-            }
-
+            if(line[0]=='?') { char temp[256]; strcpy(temp,line+1); snprintf(line,sizeof(line),"PRINT%s",temp); }
             program[program_lines].line_no=0;
             strncpy(program[program_lines].text,line,MAX_LINE_LEN);
+            program[program_lines].text[MAX_LINE_LEN-1]='\0';
             int status = setjmp(jump_buffer);
             if(status==0) execute_line(program_lines);
         }
@@ -341,7 +325,7 @@ void interactive_mode() {
 // ---------------- Main ----------------
 
 int main() {
-    printf("Integer BASIC Interpreter (interactive) with NEW, optional LET, ?->PRINT, CHR$ support, line deletion\n");
+    printf("Integer BASIC Interpreter (interactive) with expressions, NEW, optional LET, ?->PRINT, CHR$ support\n");
     interactive_mode();
     return 0;
 }
