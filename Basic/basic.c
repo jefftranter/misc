@@ -58,7 +58,7 @@ int for_stack_ptr = 0;
 
 Variable* find_var(const char *name) {
     for(int i=0;i<var_count;i++)
-        if(strcmp(vars[i].name,name)==0) return &vars[i];
+        if(strcasecmp(vars[i].name,name)==0) return &vars[i];
     return NULL;
 }
 
@@ -131,12 +131,19 @@ void execute_line(int index) {
     // ---------------- Commands ----------------
     if(strcmp(tokens[0],"PRINT")==0) {
         for(int i=1;i<n;i++) {
-            Variable *v=find_var(tokens[i]);
+            char *tok = tokens[i];
+            Variable *v=find_var(tok);
             if(v) {
                 if(v->type==TYPE_INT) printf("%d",v->int_val);
                 else if(v->type==TYPE_STRING) printf("%s",v->str_val);
             } else {
-                printf("%s",tokens[i]);
+                // treat string literals
+                if(tok[0]=='"' && tok[strlen(tok)-1]=='"') {
+                    tok[strlen(tok)-1]='\0';
+                    printf("%s", tok+1);
+                } else {
+                    printf("%s", tok);
+                }
             }
             if(i<n-1) printf(" ");
         }
@@ -305,7 +312,6 @@ void interactive_mode() {
             }
         } else {
             // Immediate mode
-            // Translate ? at start to PRINT
             if(line[0]=='?') {
                 char temp[256];
                 strcpy(temp,line+1);
