@@ -100,23 +100,6 @@ char* eval_str_func(const char *func, const char *arg1, const char *arg2, const 
     return buf;
 }
 
-// ---------------- Program Loading ----------------
-
-void load_program() {
-    char line[256];
-    while(fgets(line,sizeof(line),stdin)) {
-        int lineno;
-        if(sscanf(line,"%d",&lineno)!=1) continue;
-        if(program_lines>=MAX_LINES) { fprintf(stderr,"Too many lines\n"); exit(1);}
-        program[program_lines].line_no=lineno;
-        char *p = strchr(line,' ');
-        if(p) p++; else p=line;
-        strncpy(program[program_lines].text,p,MAX_LINE_LEN);
-        program[program_lines].text[MAX_LINE_LEN-1]='\0';
-        program_lines++;
-    }
-}
-
 // ---------------- Execution ----------------
 
 void execute_line(int index) {
@@ -175,7 +158,6 @@ void execute_line(int index) {
     } else if(strcmp(tokens[0],"END")==0) {
         longjmp(jump_buffer,2);
     } else if(strcmp(tokens[0],"ON")==0) {
-        // ON <expr> GOTO/GOSUB <list>
         int expr = eval_expr(tokens[1]);
         char *cmd = tokens[2];
         char *list = tokens[3];
@@ -201,25 +183,46 @@ void execute_line(int index) {
     }
 }
 
-// ---------------- Run ----------------
+// ---------------- Interactive Loop ----------------
 
-void run_program() {
-    int status = setjmp(jump_buffer);
-    if(status==0) {
-        for(current_line_index=0; current_line_index<program_lines; current_line_index++)
-            execute_line(current_line_index);
-    } else if(status==2) {
-        // END reached
-    } else {
-        // error
+void interactive_mode() {
+    char line[256];
+    while(1) {
+        printf("] "); fflush(stdout);
+        if(!fgets(line,sizeof(line),stdin)) break;
+        int lineno;
+        if(sscanf(line,"%d",&lineno)==1) {
+            // Add or replace line
+            int found=-1;
+            for(int i=0;i<program_lines;i++)
+                if(program[i].line_no==lineno) { found=i; break;}
+            if(found>=0) {
+                if(strlen(line)>0) strncpy(program[found].text,strchr(line,' ')+1,MAX_LINE_LEN);
+            } else {
+                if(program_lines>=MAX_LINES) { fprintf(stderr,"Too many lines\n"); continue;}
+                program[program_lines].line_no=lineno;
+                char *p = strchr(line,' ');
+                if(p) p++;
+                else p=line;
+                strncpy(program[program_lines].text,p,MAX_LINE_LEN);
+                program[program_lines].text[MAX_LINE_LEN-1]='\0';
+                program_lines++;
+            }
+        } else {
+            // Immediate execution
+            strcpy(program[program_lines].text,line);
+            program[program_lines].line_no=0; // line_no 0 = immediate
+            int status = setjmp(jump_buffer);
+            if(status==0) execute_line(program_lines);
+            program_lines--; // remove temporary line
+        }
     }
 }
 
 // ---------------- Main ----------------
 
 int main() {
-    printf("Enter program lines (Ctrl+D to end):\n");
-    load_program();
-    run_program();
+    printf("Integer BASIC Interpreter (interactive)\n");
+    interactive_mode();
     return 0;
 }
