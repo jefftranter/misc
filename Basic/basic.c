@@ -120,14 +120,12 @@ void execute_line(int index) {
     char linebuf[MAX_LINE_LEN];
     strcpy(linebuf,program[index].text);
 
-    // Tokenize
     char *tokens[64];
     int n=0;
     char *p = strtok(linebuf," \t\n");
     while(p && n<64) { tokens[n++]=p; p=strtok(NULL," \t\n"); }
     if(n==0) return;
 
-    // Uppercase command for parsing
     for(int i=0;i<strlen(tokens[0]);i++) tokens[0][i]=toupper(tokens[0][i]);
 
     // ---------------- Commands ----------------
@@ -179,7 +177,7 @@ void execute_line(int index) {
         char *targets[16];
         char *tok = strtok(list,",");
         while(tok && idx<16) { targets[idx++]=tok; tok=strtok(NULL,","); }
-        if(choice<1 || choice>idx) return; // skip
+        if(choice<1 || choice>idx) return;
         int target = eval_expr(targets[choice-1]);
         int found=-1;
         for(int i=0;i<program_lines;i++) if(program[i].line_no==target) { found=i; break;}
@@ -191,31 +189,33 @@ void execute_line(int index) {
             current_line_index=found-1;
         } else { fprintf(stderr,"Unknown ON command %s\n",cmd); longjmp(jump_buffer,1);}
     } else if(strcmp(tokens[0],"FOR")==0) {
-        if(n<4 || strcasecmp(tokens[2],"TO")!=0) {
-            fprintf(stderr,"Syntax error in FOR at line %d\n",program[index].line_no); longjmp(jump_buffer,1);
+        if(n<6 || strcmp(tokens[2],"=")!=0 || strcasecmp(tokens[4],"TO")!=0) {
+            fprintf(stderr,"Syntax error in FOR at line %d\n",program[index].line_no); 
+            longjmp(jump_buffer,1);
         }
-        Variable *v = make_var(tokens[1], TYPE_INT);
-        v->int_val = eval_expr(tokens[3]);
-        int end_val = eval_expr(tokens[3]);
+        char *varname = tokens[1];
+        int start_val = eval_expr(tokens[3]);
+        int end_val = eval_expr(tokens[5]);
         int step = 1;
-        if(n>=6 && strcasecmp(tokens[4],"STEP")==0) step = eval_expr(tokens[5]);
+        if(n>=8 && strcasecmp(tokens[6],"STEP")==0) step = eval_expr(tokens[7]);
+
+        Variable *v = make_var(varname, TYPE_INT);
+        v->int_val = start_val;
+
         if(for_stack_ptr>=MAX_FORSTACK) { fprintf(stderr,"FOR stack overflow\n"); longjmp(jump_buffer,1);}
         FOREntry *fe = &for_stack[for_stack_ptr++];
-        strcpy(fe->varname,tokens[1]);
-        fe->line_index=current_line_index;
-        fe->end_val=end_val;
-        fe->step=step;
+        strcpy(fe->varname,varname);
+        fe->line_index = current_line_index;
+        fe->end_val = end_val;
+        fe->step = step;
     } else if(strcmp(tokens[0],"NEXT")==0) {
         if(for_stack_ptr<=0) { fprintf(stderr,"NEXT without FOR\n"); longjmp(jump_buffer,1);}
         FOREntry *fe = &for_stack[for_stack_ptr-1];
         Variable *v = find_var(fe->varname);
         if(!v) { fprintf(stderr,"FOR variable not found\n"); longjmp(jump_buffer,1);}
         v->int_val += fe->step;
-        if(v->int_val <= fe->end_val) {
-            current_line_index = fe->line_index; // loop
-        } else {
-            for_stack_ptr--; // pop
-        }
+        if(v->int_val <= fe->end_val) current_line_index = fe->line_index;
+        else for_stack_ptr--;
     } else {
         fprintf(stderr,"Unknown command at line %d: %s\n",program[index].line_no,program[index].text);
         longjmp(jump_buffer,1);
@@ -247,9 +247,7 @@ void interactive_mode() {
         printf("] "); fflush(stdout);
         if(!fgets(line,sizeof(line),stdin)) break;
 
-        // Remove trailing newline
         line[strcspn(line,"\n")]=0;
-
         if(strlen(line)==0) continue;
 
         char upline[256];
@@ -266,7 +264,6 @@ void interactive_mode() {
 
         int lineno;
         if(sscanf(line,"%d",&lineno)==1) {
-            // Add or replace numbered line
             int found=-1;
             for(int i=0;i<program_lines;i++)
                 if(program[i].line_no==lineno) { found=i; break;}
@@ -277,14 +274,12 @@ void interactive_mode() {
                 if(program_lines>=MAX_LINES) { fprintf(stderr,"Too many lines\n"); continue;}
                 program[program_lines].line_no=lineno;
                 char *p = strchr(line,' ');
-                if(p) p++;
-                else p=line;
+                if(p) p++; else p=line;
                 strncpy(program[program_lines].text,p,MAX_LINE_LEN);
                 program[program_lines].text[MAX_LINE_LEN-1]='\0';
                 program_lines++;
             }
         } else {
-            // Immediate execution
             program[program_lines].line_no=0;
             strncpy(program[program_lines].text,line,MAX_LINE_LEN);
             int status = setjmp(jump_buffer);
