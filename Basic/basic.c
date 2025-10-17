@@ -183,6 +183,23 @@ void execute_line(int index) {
     }
 }
 
+// ---------------- LIST & RUN ----------------
+
+void list_program() {
+    for(int i=0;i<program_lines;i++)
+        if(program[i].line_no>0)
+            printf("%d %s",program[i].line_no, program[i].text);
+}
+
+void run_program() {
+    int status = setjmp(jump_buffer);
+    if(status==0) {
+        for(current_line_index=0; current_line_index<program_lines; current_line_index++)
+            if(program[current_line_index].line_no>0)
+                execute_line(current_line_index);
+    }
+}
+
 // ---------------- Interactive Loop ----------------
 
 void interactive_mode() {
@@ -190,14 +207,33 @@ void interactive_mode() {
     while(1) {
         printf("] "); fflush(stdout);
         if(!fgets(line,sizeof(line),stdin)) break;
+
+        // Remove trailing newline
+        line[strcspn(line,"\n")]=0;
+
+        if(strlen(line)==0) continue;
+
+        char upline[256];
+        strcpy(upline,line);
+        for(int i=0;i<strlen(upline);i++) upline[i]=toupper(upline[i]);
+
+        if(strcmp(upline,"LIST")==0) {
+            list_program();
+            continue;
+        } else if(strcmp(upline,"RUN")==0) {
+            run_program();
+            continue;
+        }
+
         int lineno;
         if(sscanf(line,"%d",&lineno)==1) {
-            // Add or replace line
+            // Add or replace numbered line
             int found=-1;
             for(int i=0;i<program_lines;i++)
                 if(program[i].line_no==lineno) { found=i; break;}
             if(found>=0) {
-                if(strlen(line)>0) strncpy(program[found].text,strchr(line,' ')+1,MAX_LINE_LEN);
+                char *p = strchr(line,' ');
+                if(p) strncpy(program[found].text,p+1,MAX_LINE_LEN);
             } else {
                 if(program_lines>=MAX_LINES) { fprintf(stderr,"Too many lines\n"); continue;}
                 program[program_lines].line_no=lineno;
@@ -210,11 +246,10 @@ void interactive_mode() {
             }
         } else {
             // Immediate execution
-            strcpy(program[program_lines].text,line);
-            program[program_lines].line_no=0; // line_no 0 = immediate
+            program[program_lines].line_no=0;
+            strncpy(program[program_lines].text,line,MAX_LINE_LEN);
             int status = setjmp(jump_buffer);
             if(status==0) execute_line(program_lines);
-            program_lines--; // remove temporary line
         }
     }
 }
