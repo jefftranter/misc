@@ -79,6 +79,15 @@ Variable* make_var(const char *name, VarType type) {
 
 // ---------------- Expression Evaluation ----------------
 
+// Remove whitespace for parser
+void remove_spaces(char *dest, const char *src) {
+    while (*src) {
+        if (!isspace(*src)) *dest++ = *src;
+        src++;
+    }
+    *dest = '\0';
+}
+
 int parse_expr(const char **s);
 
 int parse_factor(const char **s) {
@@ -123,7 +132,9 @@ int parse_expr(const char **s) {
 }
 
 int eval_arith_expr(const char *expr) {
-    const char *p = expr;
+    char expr_nospace[256];
+    remove_spaces(expr_nospace, expr);
+    const char *p = expr_nospace;
     return parse_expr(&p);
 }
 
@@ -172,7 +183,6 @@ void execute_line(int index) {
 
     for(int i=0;i<strlen(tokens[0]);i++) tokens[0][i]=toupper(tokens[0][i]);
 
-    // ---------------- Commands ----------------
     if(strcmp(tokens[0],"PRINT")==0) {
         char exprbuf[256]="";
         for(int i=1;i<n;i++) { strcat(exprbuf,tokens[i]); if(i<n-1) strcat(exprbuf," "); }
@@ -325,7 +335,7 @@ void interactive_mode() {
 // ---------------- Main ----------------
 
 int main() {
-    printf("Integer BASIC Interpreter (interactive) with expressions, NEW, optional LET, ?->PRINT, CHR$ support\n");
+    printf("Integer BASIC Interpreter (interactive) with whitespace-tolerant expressions, NEW, optional LET, ?->PRINT, CHR$ support\n");
     interactive_mode();
     return 0;
 }
