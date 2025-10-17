@@ -8,6 +8,7 @@
 #define MAX_LINE_LEN 256
 #define MAX_VARS 256
 #define MAX_SUBSTACK 64
+#define MAX_FORSTACK 64
 #define MAX_ARRAY 100
 
 typedef enum { TYPE_INT, TYPE_STRING, TYPE_INT_ARRAY } VarType;
@@ -30,6 +31,15 @@ typedef struct {
     int line_index;
 } GOSUBEntry;
 
+typedef struct {
+    char varname[32];
+    int end_val;
+    int step;
+    int line_index;
+} FOREntry;
+
+// ---------------- Global State ----------------
+
 Line program[MAX_LINES];
 int program_lines = 0;
 
@@ -40,6 +50,9 @@ jmp_buf jump_buffer;
 int current_line_index = 0;
 GOSUBEntry gosub_stack[MAX_SUBSTACK];
 int gosub_stack_ptr = 0;
+
+FOREntry for_stack[MAX_FORSTACK];
+int for_stack_ptr = 0;
 
 // ---------------- Variable Management ----------------
 
@@ -114,7 +127,7 @@ void execute_line(int index) {
     while(p && n<64) { tokens[n++]=p; p=strtok(NULL," \t\n"); }
     if(n==0) return;
 
-    // Uppercase command
+    // Uppercase command for parsing
     for(int i=0;i<strlen(tokens[0]);i++) tokens[0][i]=toupper(tokens[0][i]);
 
     // ---------------- Commands ----------------
@@ -177,6 +190,32 @@ void execute_line(int index) {
             gosub_stack[gosub_stack_ptr++].line_index=current_line_index+1;
             current_line_index=found-1;
         } else { fprintf(stderr,"Unknown ON command %s\n",cmd); longjmp(jump_buffer,1);}
+    } else if(strcmp(tokens[0],"FOR")==0) {
+        if(n<4 || strcasecmp(tokens[2],"TO")!=0) {
+            fprintf(stderr,"Syntax error in FOR at line %d\n",program[index].line_no); longjmp(jump_buffer,1);
+        }
+        Variable *v = make_var(tokens[1], TYPE_INT);
+        v->int_val = eval_expr(tokens[3]);
+        int end_val = eval_expr(tokens[3]);
+        int step = 1;
+        if(n>=6 && strcasecmp(tokens[4],"STEP")==0) step = eval_expr(tokens[5]);
+        if(for_stack_ptr>=MAX_FORSTACK) { fprintf(stderr,"FOR stack overflow\n"); longjmp(jump_buffer,1);}
+        FOREntry *fe = &for_stack[for_stack_ptr++];
+        strcpy(fe->varname,tokens[1]);
+        fe->line_index=current_line_index;
+        fe->end_val=end_val;
+        fe->step=step;
+    } else if(strcmp(tokens[0],"NEXT")==0) {
+        if(for_stack_ptr<=0) { fprintf(stderr,"NEXT without FOR\n"); longjmp(jump_buffer,1);}
+        FOREntry *fe = &for_stack[for_stack_ptr-1];
+        Variable *v = find_var(fe->varname);
+        if(!v) { fprintf(stderr,"FOR variable not found\n"); longjmp(jump_buffer,1);}
+        v->int_val += fe->step;
+        if(v->int_val <= fe->end_val) {
+            current_line_index = fe->line_index; // loop
+        } else {
+            for_stack_ptr--; // pop
+        }
     } else {
         fprintf(stderr,"Unknown command at line %d: %s\n",program[index].line_no,program[index].text);
         longjmp(jump_buffer,1);
@@ -188,7 +227,7 @@ void execute_line(int index) {
 void list_program() {
     for(int i=0;i<program_lines;i++)
         if(program[i].line_no>0)
-            printf("%d %s",program[i].line_no, program[i].text);
+            printf("%d %s\n",program[i].line_no, program[i].text);
 }
 
 void run_program() {
@@ -257,7 +296,7 @@ void interactive_mode() {
 // ---------------- Main ----------------
 
 int main() {
-    printf("Integer BASIC Interpreter (interactive)\n");
+    printf("Integer BASIC Interpreter (interactive) with FOR/NEXT\n");
     interactive_mode();
     return 0;
 }
