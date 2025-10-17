@@ -168,6 +168,11 @@ void execute_line(int index) {
         current_line_index=gosub_stack[--gosub_stack_ptr].line_index-1;
     } else if(strcmp(tokens[0],"END")==0) {
         longjmp(jump_buffer,2);
+    } else if(strcmp(tokens[0],"NEW")==0) {
+        program_lines=0;
+        var_count=0;
+        gosub_stack_ptr=0;
+        for_stack_ptr=0;
     } else if(strcmp(tokens[0],"ON")==0) {
         int expr = eval_expr(tokens[1]);
         char *cmd = tokens[2];
@@ -216,6 +221,16 @@ void execute_line(int index) {
         v->int_val += fe->step;
         if(v->int_val <= fe->end_val) current_line_index = fe->line_index;
         else for_stack_ptr--;
+    } else if(n>=3 && strcmp(tokens[1],"=")==0) {
+        // Optional LET
+        char *varname = tokens[0];
+        Variable *v = make_var(varname, TYPE_INT);
+        char valbuf[256] = "";
+        for(int i=2;i<n;i++) {
+            strcat(valbuf, tokens[i]);
+            if(i<n-1) strcat(valbuf," ");
+        }
+        v->int_val = eval_expr(valbuf);
     } else {
         fprintf(stderr,"Unknown command at line %d: %s\n",program[index].line_no,program[index].text);
         longjmp(jump_buffer,1);
@@ -291,7 +306,7 @@ void interactive_mode() {
 // ---------------- Main ----------------
 
 int main() {
-    printf("Integer BASIC Interpreter (interactive) with FOR/NEXT\n");
+    printf("Integer BASIC Interpreter (interactive) with NEW and optional LET\n");
     interactive_mode();
     return 0;
 }
