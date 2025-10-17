@@ -136,14 +136,19 @@ void execute_line(int index) {
             if(v) {
                 if(v->type==TYPE_INT) printf("%d",v->int_val);
                 else if(v->type==TYPE_STRING) printf("%s",v->str_val);
+            } else if(strchr(tok,'(')) {
+                // function-like token
+                char func[32], arg1[32], arg2[32], arg3[32];
+                func[0]='\0'; arg1[0]='\0'; arg2[0]='\0'; arg3[0]='\0';
+                sscanf(tok,"%31[^'(](%31[^,],%31[^,],%31[^)])", func,arg1,arg2,arg3);
+                char *res = eval_str_func(func,arg1,arg2,arg3);
+                printf("%s", res);
             } else {
-                // treat string literals
+                // string literal
                 if(tok[0]=='"' && tok[strlen(tok)-1]=='"') {
                     tok[strlen(tok)-1]='\0';
                     printf("%s", tok+1);
-                } else {
-                    printf("%s", tok);
-                }
+                } else printf("%s", tok);
             }
             if(i<n-1) printf(" ");
         }
@@ -286,27 +291,34 @@ void interactive_mode() {
 
         int lineno;
         if(sscanf(line,"%d",&lineno)==1) {
+            char *p = strchr(line,' ');
+            if(!p || strlen(p)==0) {
+                // Delete line if no code follows the number
+                int found=-1;
+                for(int i=0;i<program_lines;i++)
+                    if(program[i].line_no==lineno) { found=i; break; }
+                if(found>=0) {
+                    for(int j=found;j<program_lines-1;j++)
+                        program[j]=program[j+1];
+                    program_lines--;
+                }
+                continue;
+            }
+            p++; // skip space
+            if(p[0]=='?') {
+                char temp[256];
+                strcpy(temp,p+1);
+                snprintf(p, MAX_LINE_LEN-(p-line), "PRINT%s", temp);
+            }
             int found=-1;
             for(int i=0;i<program_lines;i++)
                 if(program[i].line_no==lineno) { found=i; break;}
-            
-            char *p = strchr(line,' ');
-            if(p) {
-                p++; // skip space
-                // Translate ? at start to PRINT
-                if(p[0]=='?') {
-                    char temp[256];
-                    strcpy(temp,p+1);
-                    snprintf(p, MAX_LINE_LEN-(p-line), "PRINT%s", temp);
-                }
-            }
-            
             if(found>=0) {
-                if(p) strncpy(program[found].text,p,MAX_LINE_LEN);
+                strncpy(program[found].text,p,MAX_LINE_LEN);
             } else {
                 if(program_lines>=MAX_LINES) { fprintf(stderr,"Too many lines\n"); continue;}
                 program[program_lines].line_no=lineno;
-                if(p) strncpy(program[program_lines].text,p,MAX_LINE_LEN);
+                strncpy(program[program_lines].text,p,MAX_LINE_LEN);
                 program[program_lines].text[MAX_LINE_LEN-1]='\0';
                 program_lines++;
             }
@@ -329,7 +341,7 @@ void interactive_mode() {
 // ---------------- Main ----------------
 
 int main() {
-    printf("Integer BASIC Interpreter (interactive) with NEW, optional LET, ?->PRINT\n");
+    printf("Integer BASIC Interpreter (interactive) with NEW, optional LET, ?->PRINT, CHR$ support, line deletion\n");
     interactive_mode();
     return 0;
 }
