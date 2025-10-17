@@ -129,7 +129,7 @@ void execute_line(int index) {
     for(int i=0;i<strlen(tokens[0]);i++) tokens[0][i]=toupper(tokens[0][i]);
 
     // ---------------- Commands ----------------
-    if(strcmp(tokens[0],"PRINT")==0 || strcmp(tokens[0],"?")==0) {
+    if(strcmp(tokens[0],"PRINT")==0) {
         for(int i=1;i<n;i++) {
             Variable *v=find_var(tokens[i]);
             if(v) {
@@ -282,19 +282,36 @@ void interactive_mode() {
             int found=-1;
             for(int i=0;i<program_lines;i++)
                 if(program[i].line_no==lineno) { found=i; break;}
+            
+            char *p = strchr(line,' ');
+            if(p) {
+                p++; // skip space
+                // Translate ? at start to PRINT
+                if(p[0]=='?') {
+                    char temp[256];
+                    strcpy(temp,p+1);
+                    snprintf(p, MAX_LINE_LEN-(p-line), "PRINT%s", temp);
+                }
+            }
+            
             if(found>=0) {
-                char *p = strchr(line,' ');
-                if(p) strncpy(program[found].text,p+1,MAX_LINE_LEN);
+                if(p) strncpy(program[found].text,p,MAX_LINE_LEN);
             } else {
                 if(program_lines>=MAX_LINES) { fprintf(stderr,"Too many lines\n"); continue;}
                 program[program_lines].line_no=lineno;
-                char *p = strchr(line,' ');
-                if(p) p++; else p=line;
-                strncpy(program[program_lines].text,p,MAX_LINE_LEN);
+                if(p) strncpy(program[program_lines].text,p,MAX_LINE_LEN);
                 program[program_lines].text[MAX_LINE_LEN-1]='\0';
                 program_lines++;
             }
         } else {
+            // Immediate mode
+            // Translate ? at start to PRINT
+            if(line[0]=='?') {
+                char temp[256];
+                strcpy(temp,line+1);
+                snprintf(line, sizeof(line), "PRINT%s", temp);
+            }
+
             program[program_lines].line_no=0;
             strncpy(program[program_lines].text,line,MAX_LINE_LEN);
             int status = setjmp(jump_buffer);
@@ -306,7 +323,7 @@ void interactive_mode() {
 // ---------------- Main ----------------
 
 int main() {
-    printf("Integer BASIC Interpreter (interactive) with NEW and optional LET\n");
+    printf("Integer BASIC Interpreter (interactive) with NEW, optional LET, ?->PRINT\n");
     interactive_mode();
     return 0;
 }
