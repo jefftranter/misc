@@ -1,10 +1,9 @@
 /*
- * BASIC Interpreter v5_fix6
- * Adds GOTO, GOSUB, RETURN and relational/logical operators (AND/OR/NOT)
- * Interactive, line-numbered program editing: LIST, RUN, NEW, immediate execution
- * Supports PRINT/? INPUT, IF...THEN, FOR/NEXT (simple), variables (A, A$), optional LET
- *
- * This is an educational interpreter, not a full Applesoft implementation.
+ * BASIC Interpreter v5_fix7
+ * - Full GOTO/GOSUB/RETURN with expression targets
+ * - ON <expr> GOTO/GOSUB support
+ * - Relational/logical operators (AND/OR/NOT)
+ * - PRINT/? INPUT, IF...THEN, FOR/NEXT, LET optional, NEW, LIST, RUN
  */
 
 #include <stdio.h>
@@ -15,7 +14,7 @@
 #define MAX_LINES 2000
 #define MAX_LINE_LEN 512
 #define MAX_VARS 1024
-#define MAX_GOSUB 256
+#define MAX_GOSUB 512
 #define MAX_FOR_STACK 256
 
 typedef struct {
@@ -115,7 +114,6 @@ static double parse_primary(void) {
     if (!input_line) return 0;
     if (input_line[pos] == '(') { pos++; double v = parse_logical_or(); if (input_line[pos]==')') pos++; return v; }
     if (input_line[pos]=='"') {
-        // string literal in numeric context: try to parse number from it
         pos++;
         char buf[256]; int i=0;
         while (input_line[pos] && input_line[pos] != '"' && i < (int)sizeof(buf)-1) buf[i++] = input_line[pos++];
@@ -128,8 +126,8 @@ static double parse_primary(void) {
         char numbuf[128]; int i=0;
         if (input_line[pos]=='-') numbuf[i++] = input_line[pos++];
         while (isdigit((unsigned char)input_line[pos]) || input_line[pos]=='.' || input_line[pos]=='e' || input_line[pos]=='E' || input_line[pos]=='+' || input_line[pos]=='-') {
-            numbuf[i++] = input_line[pos++];
-            if (i >= (int)sizeof(numbuf)-1) break;
+            if (i < (int)sizeof(numbuf)-1) numbuf[i++] = input_line[pos++];
+            else break;
         }
         numbuf[i]=0;
         skip_ws();
@@ -184,7 +182,6 @@ static double parse_relational(void) {
     double left = parse_add();
     skip_ws();
     if (!input_line) return left;
-    // check multi-char operators first
     if (input_line[pos] == '>' && input_line[pos+1] == '=') { pos+=2; double right = parse_add(); return left >= right ? 1.0 : 0.0; }
     if (input_line[pos] == '<' && input_line[pos+1] == '=') { pos+=2; double right = parse_add(); return left <= right ? 1.0 : 0.0; }
     if (input_line[pos] == '<' && input_line[pos+1] == '>') { pos+=2; double right = parse_add(); return left != right ? 1.0 : 0.0; }
@@ -227,11 +224,16 @@ static double eval_expression_numeric(const char *expr) {
     return v;
 }
 
+/* Find line index by line number (linear search) */
+static int find_line_index(int lineno) {
+    for (int i=0;i<num_lines;i++) if (program[i].number == lineno) return i;
+    return -1;
+}
+
 /* Execute commands */
 
 static void cmd_print(const char *rest) {
     input_line = rest; pos = 0;
-    // print can handle string literals or expressions
     int first = 1;
     skip_ws();
     while (input_line && input_line[pos]) {
@@ -281,19 +283,17 @@ static void cmd_input(const char *rest) {
 
 static void cmd_goto(const char *rest) {
     int target = (int)eval_expression_numeric(rest);
-    int found = -1;
-    for (int i=0;i<num_lines;i++) if (program[i].number == target) { found = i; break; }
-    if (found >= 0) current_line_index = found - 1; // will be incremented by run loop
+    int found = find_line_index(target);
+    if (found >= 0) current_line_index = found - 1; // run loop will increment
     else fprintf(stderr,"GOTO: line %d not found\n", target);
 }
 
 static void cmd_gosub(const char *rest) {
     int target = (int)eval_expression_numeric(rest);
-    int found = -1;
-    for (int i=0;i<num_lines;i++) if (program[i].number == target) { found = i; break; }
+    int found = find_line_index(target);
     if (found >= 0) {
         if (gosub_sp >= MAX_GOSUB) { fprintf(stderr,"GOSUB stack overflow\n"); return; }
-        gosub_stack[gosub_sp++] = current_line_index + 1;
+        gosub_stack[gosub_sp++] = current_line_index + 1; // return to next line
         current_line_index = found - 1;
     } else fprintf(stderr,"GOSUB: line %d not found\n", target);
 }
@@ -304,7 +304,7 @@ static void cmd_return(void) {
     current_line_index = ret - 1;
 }
 
-/* FOR and NEXT handlers (reuse previous implementation) */
+/* FOR and NEXT handlers */
 static void cmd_for(const char *rest) {
     input_line = rest; pos = 0;
     skip_ws();
@@ -336,7 +336,6 @@ static void cmd_for(const char *rest) {
 }
 
 static void cmd_next(const char *rest) {
-    // rest may contain optional variable name
     input_line = rest; pos = 0;
     skip_ws();
     char name[32]; int i=0; name[0]=0;
@@ -363,74 +362,97 @@ static void cmd_next(const char *rest) {
     input_line = NULL;
 }
 
+/* ON <expr> GOTO list  and ON <expr> GOSUB list */
+static void cmd_on_goto_gosub(const char *rest, int prefer_gosub) {
+    input_line = rest; pos = 0;
+    double sel = parse_logical_or();
+    skip_ws();
+    /* find keyword position for GOTO/GOSUB */
+    const char *list_start = rest;
+    int kwpos = -1;
+    for (int i=0; rest[i]; i++) {
+        if (strncasecmp(&rest[i], "GOTO", 4) == 0) { kwpos = i; break; }
+        if (strncasecmp(&rest[i], "GOSUB", 5) == 0) { kwpos = i; break; }
+    }
+    if (kwpos < 0) { fprintf(stderr,"ON: missing GOTO/GOSUB\n"); input_line = NULL; return; }
+    /* detect which keyword */
+    int is_gosub_kw = (strncasecmp(&rest[kwpos], "GOSUB", 5) == 0);
+    const char *list = rest + kwpos;
+    while (*list && !isspace((unsigned char)*list)) list++;
+    while (*list && isspace((unsigned char)*list)) list++;
+    if (!list) { input_line = NULL; return; }
+    int choice = (int)sel;
+    if (choice < 1) { input_line = NULL; return; }
+    int idx = 0;
+    const char *ptr = list;
+    char token[128];
+    while (*ptr) {
+        int t=0;
+        while (*ptr && *ptr!=',') { if (t < (int)sizeof(token)-1) token[t++] = *ptr; ptr++; }
+        token[t]=0;
+        char *s = token; while (*s && isspace((unsigned char)*s)) s++;
+        char *e = s + strlen(s) - 1; while (e > s && isspace((unsigned char)*e)) *e-- = 0;
+        idx++;
+        if (idx == choice) {
+            int target = (int)eval_expression_numeric(s);
+            int found = find_line_index(target);
+            if (found < 0) { fprintf(stderr,"ON: target %d not found\n", target); input_line = NULL; return; }
+            if (prefer_gosub || is_gosub_kw) {
+                if (gosub_sp >= MAX_GOSUB) { fprintf(stderr,"GOSUB stack overflow\n"); input_line = NULL; return; }
+                gosub_stack[gosub_sp++] = current_line_index + 1;
+                current_line_index = found - 1;
+            } else {
+                current_line_index = found - 1;
+            }
+            input_line = NULL;
+            return;
+        }
+        if (*ptr==',') ptr++;
+    }
+    input_line = NULL;
+}
+
 /* Execute a single program line text (without the leading line number) */
 static void execute_statement(const char *stmt) {
-    // Identify the first keyword or token, dispatch accordingly
-    // We compare uppercase for keywords; create a local copy
     char tmp[MAX_LINE_LEN];
     strncpy(tmp, stmt, sizeof(tmp)-1); tmp[sizeof(tmp)-1]=0;
-    char up[MAX_LINE_LEN]; strncpy(up, tmp, sizeof(up)-1); up[sizeof(up)-1]=0; str_upper(up);
-    // find first token start
-    const char *p = stmt;
+    const char *p = tmp;
     while (*p && isspace((unsigned char)*p)) p++;
-    // check keywords
-    if (strncasecmp(p, "PRINT", 5) == 0) { p += 5; skip_ws(); cmd_print(p); return; }
+    if (strncasecmp(p, "PRINT", 5) == 0) { p += 5; cmd_print(p); return; }
     if (*p == '?') { p++; cmd_print(p); return; }
     if (strncasecmp(p, "INPUT", 5) == 0) { p += 5; cmd_input(p); return; }
     if (strncasecmp(p, "GOTO", 4) == 0) { p += 4; cmd_goto(p); return; }
     if (strncasecmp(p, "GOSUB", 5) == 0) { p += 5; cmd_gosub(p); return; }
     if (strncasecmp(p, "RETURN", 6) == 0) { cmd_return(); return; }
-    if (strncasecmp(p, "IF", 2) == 0) { p += 2; // evaluate condition and then handle THEN
-        input_line = p; pos = 0; double cond = parse_logical_or();
-        skip_ws();
-        if (match_keyword("THEN")) {
-            skip_ws();
-            // THEN may be a line number or a statement
-            if (isdigit((unsigned char)input_line[pos])) {
-                int ln = (int)parse_relational(); // reuse to parse number
-                int found = -1;
-                for (int i=0;i<num_lines;i++) if (program[i].number == ln) { found = i; break; }
-                if (found >= 0 && cond != 0.0) current_line_index = found - 1;
-            } else {
-                // execute inline statement after THEN if condition true
-                if (cond != 0.0) execute_statement(input_line + pos);
-            }
-        } else fprintf(stderr,"IF: missing THEN\n");
-        input_line = NULL;
-        return;
-    }
+    if (strncasecmp(p, "IF", 2) == 0) { p += 2; input_line = p; pos = 0; double cond = parse_logical_or(); skip_ws(); if (match_keyword("THEN")) { skip_ws(); if (isdigit((unsigned char)input_line[pos])) { int ln = (int)parse_relational(); if (cond != 0.0) { int found = find_line_index(ln); if (found>=0) current_line_index = found - 1; else fprintf(stderr,"IF: line %d not found\n", ln); } } else { if (cond != 0.0) execute_statement(input_line + pos); } } input_line = NULL; return; }
     if (strncasecmp(p, "FOR", 3) == 0) { p += 3; cmd_for(p); return; }
     if (strncasecmp(p, "NEXT", 4) == 0) { p += 4; cmd_next(p); return; }
     if (strncasecmp(p, "END", 3) == 0) { exit(0); }
-    // Assignment A = expr or LET A = expr
+    if (strncasecmp(p, "ON", 2) == 0) { p += 2; skip_ws(); /* try GOTO then GOSUB */ cmd_on_goto_gosub(p, 0); return; }
+    /* Assignment or LET */
     const char *q = p;
-    // optional LET
     if (strncasecmp(q, "LET", 3) == 0) q += 3;
     while (*q && isspace((unsigned char)*q)) q++;
     if (isalpha((unsigned char)*q)) {
-        // parse name
         char name[32]; int i=0;
         while (*q && (isalnum((unsigned char)*q) || *q=='$' || *q=='_')) { if (i < (int)sizeof(name)-1) name[i++] = (char)toupper((unsigned char)*q); q++; }
         name[i]=0;
         const char *after = q;
         while (*after && isspace((unsigned char)*after)) after++;
         if (*after == '=') {
-            // evaluate RHS expression
-            after++; // skip =
-            double val = eval_expression_numeric(after);
+            after++;
+            int offset = (int)(after - tmp);
+            double val = eval_expression_numeric(tmp + offset);
             Variable *v = find_var(name,1);
-            if (v->is_string) {
-                // store numeric as string
-                snprintf(v->svalue, sizeof(v->svalue), "%g", val);
-            } else v->value = val;
+            if (v->is_string) snprintf(v->svalue, sizeof(v->svalue), "%g", val);
+            else v->value = val;
             return;
         }
     }
-    // If no command matched, ignore or print error
     if (*p != 0) fprintf(stderr,"Unknown statement: %s\n", p);
 }
 
-/* Run program lines in numeric order of storage */
+/* Run program lines in stored order */
 static void run_program(void) {
     for (current_line_index = 0; current_line_index < num_lines; current_line_index++) {
         execute_statement(program[current_line_index].text);
@@ -439,20 +461,13 @@ static void run_program(void) {
 
 /* Listing, storing, interactive loop */
 static void list_program(void) {
-    // sort by line number temporarily for listing
-    int order[MAX_LINES];
-    int n = 0;
+    int order[MAX_LINES]; int n=0;
     for (int i=0;i<num_lines;i++) order[n++]=i;
-    // simple sort by line number (bubble-ish for small programs)
     for (int a=0;a<n;a++) for (int b=a+1;b<n;b++) if (program[order[a]].number > program[order[b]].number) { int t=order[a]; order[a]=order[b]; order[b]=t; }
-    for (int i=0;i<n;i++) {
-        int idx = order[i];
-        printf("%d %s\n", program[idx].number, program[idx].text);
-    }
+    for (int i=0;i<n;i++) printf("%d %s\n", program[order[i]].number, program[order[i]].text);
 }
 
 static void store_line(int lineno, const char *text) {
-    // replace if exists, else append
     for (int i=0;i<num_lines;i++) if (program[i].number == lineno) { strncpy(program[i].text, text, MAX_LINE_LEN-1); program[i].text[MAX_LINE_LEN-1]=0; return; }
     if (num_lines >= MAX_LINES) { fprintf(stderr,"Program too large\n"); return; }
     program[num_lines].number = lineno;
@@ -461,49 +476,37 @@ static void store_line(int lineno, const char *text) {
 }
 
 static void delete_line(int lineno) {
-    for (int i=0;i<num_lines;i++) if (program[i].number == lineno) {
-        memmove(&program[i], &program[i+1], (num_lines - i - 1) * sizeof(ProgramLine));
-        num_lines--; return;
-    }
+    for (int i=0;i<num_lines;i++) if (program[i].number == lineno) { memmove(&program[i], &program[i+1], (num_lines - i - 1) * sizeof(ProgramLine)); num_lines--; return; }
 }
 
 static void interactive_mode(void) {
     char line[MAX_LINE_LEN];
     while (1) {
-        printf("> ");
-        fflush(stdout);
+        printf("> "); fflush(stdout);
         if (!fgets(line, sizeof(line), stdin)) break;
         line[strcspn(line, "\n")] = 0;
         if (strlen(line) == 0) continue;
-        // commands
         char up[MAX_LINE_LEN]; strncpy(up, line, sizeof(up)-1); up[sizeof(up)-1]=0; str_upper(up);
         if (strcmp(up, "RUN") == 0) { run_program(); continue; }
         if (strcmp(up, "LIST") == 0) { list_program(); continue; }
         if (strcmp(up, "NEW") == 0) { num_lines = 0; num_vars = 0; gosub_sp=0; for_sp=0; continue; }
-        // line-numbered program editing
-        const char *p = line;
-        while (*p && isspace((unsigned char)*p)) p++;
+        const char *p = line; while (*p && isspace((unsigned char)*p)) p++;
         if (isdigit((unsigned char)*p)) {
             int lineno = atoi(p);
             const char *rest = strchr(p, ' ');
-            if (!rest) { delete_line(lineno); continue; } // delete on bare number
-            rest++; // skip space
-            // convert leading '?' to PRINT for storage
-            while (*rest && isspace((unsigned char)*rest)) rest++;
-            if (*rest == '?') {
-                char tmp[MAX_LINE_LEN]; snprintf(tmp, sizeof(tmp), "PRINT %s", rest+1); store_line(lineno, tmp);
-            } else store_line(lineno, rest);
+            if (!rest) { delete_line(lineno); continue; }
+            rest++; while (*rest && isspace((unsigned char)*rest)) rest++;
+            if (*rest == '?') { char tmp[MAX_LINE_LEN]; snprintf(tmp, sizeof(tmp), "PRINT %s", rest+1); store_line(lineno, tmp); }
+            else store_line(lineno, rest);
             continue;
         }
-        // immediate execution (ensure input_line set inside called functions)
-        // handle immediate commands: LIST, RUN handled above
-        // execute_statement expects the statement text
+        /* Immediate execution */
         execute_statement(line);
     }
 }
 
 int main(void) {
-    printf("BASIC v5_fix6 — GOTO/GOSUB + relational/logical ops added\n");
+    printf("BASIC v5_fix7 — Full GOTO/GOSUB/RETURN + ON ... GOTO/GOSUB\n");
     interactive_mode();
     return 0;
 }
