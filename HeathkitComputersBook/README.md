@@ -88,3 +88,4 @@ I've started a series of YouTube videos about the Heathkit H89:
 - [The Heathkit H89 Computer Part 15: FORTRAN Compilers](https://youtu.be/edcMXAuh3_M)
 - [The Heathkit H89 Computer Part 16: Pascal Compilers](https://youtu.be/Pgp53X8W1SU)
 - [The Heathkit H89 Computer Part 17: C Compilers](https://youtu.be/VZrYBLY6UFU)
+- [The Heathkit H89 Computer Part 18: Cross-Compilers](https://youtu.be/5lP3oS7FtdQ)
