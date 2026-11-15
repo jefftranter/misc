@@ -1,0 +1,13 @@
+Add string arrays
+Improve the parser to accept more operators (mod, integer division)
+Add INPUT, IF...THEN, and relational operators.
+Make functions like CHR$() case-insensitive.
+Check for and catch divide by zero errors.
+Convert all keywords to uppercase in the program listing?
+Write a BASIC program that exercises and tests all language features.
+Add support for string arrays.
+Add support for arrays with up to two dimensions.
+Implement LOAD and SAVE commands.
+Add descriptive comments to the code
+Don't require whitespace e.g. X=1 ?10
+Add any missing commands from MS BASIC.
